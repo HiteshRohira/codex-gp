@@ -5,7 +5,7 @@ use gpui::{
     Entity, EntityInputHandler, FocusHandle, Focusable, GlobalElementId, KeyBinding, LayoutId,
     MouseButton, MouseDownEvent, MouseMoveEvent, MouseUpEvent, PaintQuad, Pixels, Point,
     ShapedLine, SharedString, Style, TextRun, UTF16Selection, UnderlineStyle, Window, actions, div,
-    fill, hsla, point, prelude::*, px, relative, rgb, rgba, size, white,
+    fill, hsla, point, prelude::*, px, relative, rgb, rgba, size,
 };
 use unicode_segmentation::UnicodeSegmentation;
 
@@ -71,18 +71,6 @@ impl TextInput {
             last_bounds: None,
             is_selecting: false,
         }
-    }
-
-    pub fn content(&self) -> String {
-        self.content.to_string()
-    }
-
-    pub fn set_content(&mut self, content: impl Into<SharedString>, cx: &mut Context<Self>) {
-        self.content = content.into();
-        self.selected_range = self.content.len()..self.content.len();
-        self.selection_reversed = false;
-        self.marked_range = None;
-        cx.notify();
     }
 
     pub fn take_content(&mut self, cx: &mut Context<Self>) -> String {
@@ -479,8 +467,8 @@ fn input_box(input: Entity<TextInput>) -> Div {
         .p(px(6.))
         .rounded_md()
         .border_1()
-        .border_color(rgb(0xd7d7ce))
-        .bg(white())
+        .border_color(rgb(0x34363d))
+        .bg(rgb(0x18191d))
         .child(TextElement { input })
 }
 
@@ -543,7 +531,7 @@ impl Element for TextElement {
         let style = window.text_style();
 
         let (display_text, text_color) = if content.is_empty() {
-            (input.placeholder.clone(), hsla(0., 0., 0., 0.35))
+            (input.placeholder.clone(), hsla(0., 0., 0.78, 0.45))
         } else {
             (content, style.color)
         };

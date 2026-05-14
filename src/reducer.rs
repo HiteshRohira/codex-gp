@@ -1,6 +1,6 @@
 use crate::model::{
-    AppModel, ApprovalRequest, RuntimeStatus, ThreadSummary, TimelineItem, TimelineKind,
-    TimelineStatus,
+    AppModel, ApprovalRequest, ProjectSummary, RuntimeStatus, ThreadSummary, TimelineItem,
+    TimelineKind, TimelineStatus,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -73,10 +73,12 @@ pub fn reduce(model: &mut AppModel, event: AgentEvent) {
     match event {
         AgentEvent::RuntimeReady { cwd } => {
             model.cwd = cwd;
+            upsert_project(model);
             model.runtime_status = RuntimeStatus::Idle;
             model.status_message = "Runtime ready".to_string();
         }
         AgentEvent::ThreadStarted { id, title } => {
+            upsert_project(model);
             upsert_thread(model, id.clone(), title);
             model.active_thread = Some(id);
         }
@@ -231,63 +233,6 @@ pub fn reduce(model: &mut AppModel, event: AgentEvent) {
     }
 }
 
-pub fn seed_long_transcript(model: &mut AppModel, count: usize) {
-    model.timeline.clear();
-    model.pending_approvals.clear();
-    model.next_timeline_id = 0;
-    model.runtime_status = RuntimeStatus::Idle;
-    model.status_message = format!("Seeded {count} timeline rows");
-
-    upsert_thread(
-        model,
-        "seeded-thread".to_string(),
-        "Long transcript perf seed".to_string(),
-    );
-    model.active_thread = Some("seeded-thread".to_string());
-
-    for ix in 0..count {
-        let (kind, title, body) = match ix % 5 {
-            0 => (
-                TimelineKind::User,
-                "Prompt".to_string(),
-                format!("Seed prompt #{ix}: inspect the workspace and report progress."),
-            ),
-            1 => (
-                TimelineKind::Assistant,
-                "Assistant response".to_string(),
-                format!(
-                    "Streaming response row #{ix}. This compact row keeps virtualization stable."
-                ),
-            ),
-            2 => (
-                TimelineKind::Command,
-                "cargo check".to_string(),
-                format!("checked target row #{ix}\nfinished in 0.1s"),
-            ),
-            3 => (
-                TimelineKind::Plan,
-                "Plan".to_string(),
-                format!("Row #{ix}: create shell, wire fake runtime, verify."),
-            ),
-            _ => (
-                TimelineKind::Diff,
-                "src/ui/root.rs".to_string(),
-                format!("+ rendered virtual row #{ix}\n- placeholder-only layout"),
-            ),
-        };
-
-        push_item(
-            model,
-            format!("seed-{ix}"),
-            kind,
-            title,
-            body,
-            "seeded".to_string(),
-            TimelineStatus::Complete,
-        );
-    }
-}
-
 fn upsert_thread(model: &mut AppModel, id: String, title: String) {
     if let Some(thread) = model.threads.iter_mut().find(|thread| thread.id == id) {
         thread.status = model.runtime_status.label().to_string();
@@ -304,6 +249,29 @@ fn upsert_thread(model: &mut AppModel, id: String, title: String) {
             title,
         },
     );
+}
+
+pub fn upsert_project(model: &mut AppModel) {
+    let path = model.cwd.clone();
+    if path == "No workspace selected" {
+        return;
+    }
+
+    let title = path
+        .rsplit('/')
+        .find(|segment| !segment.is_empty())
+        .unwrap_or(path.as_str())
+        .to_string();
+    let id = element_safe_id(&path);
+    model.active_project = Some(id.clone());
+
+    if let Some(project) = model.projects.iter_mut().find(|project| project.id == id) {
+        project.path = path;
+        project.title = title;
+        return;
+    }
+
+    model.projects.insert(0, ProjectSummary { id, path, title });
 }
 
 fn append_to_item(
@@ -329,6 +297,19 @@ fn append_to_item(
         meta,
         TimelineStatus::Running,
     );
+}
+
+fn element_safe_id(value: &str) -> String {
+    value
+        .chars()
+        .map(|ch| {
+            if ch.is_ascii_alphanumeric() || ch == '-' || ch == '_' {
+                ch
+            } else {
+                '-'
+            }
+        })
+        .collect()
 }
 
 fn push_item(
@@ -406,16 +387,5 @@ mod tests {
 
         assert!(model.pending_approvals.is_empty());
         assert_eq!(model.timeline[0].meta, "approved");
-    }
-
-    #[test]
-    fn seed_long_transcript_creates_requested_row_count() {
-        let mut model = AppModel::default();
-
-        seed_long_transcript(&mut model, 10_000);
-
-        assert_eq!(model.timeline.len(), 10_000);
-        assert_eq!(model.active_thread.as_deref(), Some("seeded-thread"));
-        assert_eq!(model.runtime_status, RuntimeStatus::Idle);
     }
 }

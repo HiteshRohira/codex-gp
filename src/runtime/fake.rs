@@ -120,7 +120,7 @@ impl FakeAgentRuntime {
                 AgentEvent::DiffUpdated {
                     item_id: diff_item_id,
                     path: "src/ui/root.rs".to_string(),
-                    summary: "+ root window\n+ virtualized transcript\n+ approval panel shell".to_string(),
+                    summary: "+ root window\n+ virtualized transcript\n+ inline tool output".to_string(),
                 },
             ),
             event(

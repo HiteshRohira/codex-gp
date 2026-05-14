@@ -169,7 +169,7 @@ impl JsonRpcRequestBuilder {
             "thread/start",
             json!({
                 "cwd": cwd,
-                "sandbox": "workspaceWrite",
+                "sandbox": "workspace-write",
                 "personality": "friendly",
                 "serviceName": "codex_gpui_desktop",
                 "sessionStartSource": "startup"
@@ -186,7 +186,8 @@ impl JsonRpcRequestBuilder {
                 "input": [
                     {
                         "type": "text",
-                        "text": prompt
+                        "text": prompt,
+                        "text_elements": []
                     }
                 ]
             }),
@@ -409,7 +410,7 @@ mod tests {
 
         assert_eq!(request["method"], "thread/start");
         assert_eq!(request["params"]["cwd"], "/tmp/project");
-        assert_eq!(request["params"]["sandbox"], "workspaceWrite");
+        assert_eq!(request["params"]["sandbox"], "workspace-write");
     }
 
     #[test]
@@ -422,6 +423,7 @@ mod tests {
         assert_eq!(request["params"]["threadId"], "thr_123");
         assert_eq!(request["params"]["input"][0]["type"], "text");
         assert_eq!(request["params"]["input"][0]["text"], "hello");
+        assert_eq!(request["params"]["input"][0]["text_elements"], json!([]));
     }
 
     #[test]

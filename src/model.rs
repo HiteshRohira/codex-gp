@@ -2,9 +2,11 @@
 pub struct AppModel {
     pub account_label: String,
     pub active_model: String,
+    pub active_project: Option<String>,
     pub active_thread: Option<String>,
     pub cwd: String,
     pub pending_approvals: Vec<ApprovalRequest>,
+    pub projects: Vec<ProjectSummary>,
     pub runtime_status: RuntimeStatus,
     pub sandbox_label: String,
     pub skipped_events: usize,
@@ -20,9 +22,11 @@ impl Default for AppModel {
         Self {
             account_label: "Local account".to_string(),
             active_model: "gpt-5.4".to_string(),
+            active_project: None,
             active_thread: None,
             cwd: "No workspace selected".to_string(),
             pending_approvals: Vec::new(),
+            projects: Vec::new(),
             runtime_status: RuntimeStatus::Idle,
             sandbox_label: "workspace-write".to_string(),
             skipped_events: 0,
@@ -40,6 +44,13 @@ impl AppModel {
         self.next_timeline_id += 1;
         format!("{prefix}-{}", self.next_timeline_id)
     }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ProjectSummary {
+    pub id: String,
+    pub path: String,
+    pub title: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
